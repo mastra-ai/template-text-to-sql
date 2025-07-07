@@ -3,16 +3,15 @@ import { z } from "zod";
 import { databaseIntrospectionTool } from "../tools/database-introspection-tool";
 import { sqlGenerationTool } from "../tools/sql-generation-tool";
 import { sqlExecutionTool } from "../tools/sql-execution-tool";
+import { databaseSeedingTool } from "../tools/database-seeding-tool";
 import { RuntimeContext } from "@mastra/core/di";
 
-// Step 1: Get connection string and introspect database
-const getConnectionAndIntrospectStep = createStep({
-  id: "get-connection-and-introspect",
+// Step 1: Get connection string
+const getConnectionStep = createStep({
+  id: "get-connection",
   inputSchema: z.object({}),
   outputSchema: z.object({
     connectionString: z.string(),
-    schema: z.any(),
-    schemaPresentation: z.string(),
   }),
   resumeSchema: z.object({
     connectionString: z.string(),
@@ -20,7 +19,7 @@ const getConnectionAndIntrospectStep = createStep({
   suspendSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ resumeData, suspend, runtimeContext }) => {
+  execute: async ({ resumeData, suspend }) => {
     if (!resumeData?.connectionString) {
       await suspend({
         message: "Please provide your PostgreSQL connection string (e.g., postgresql://user:password@localhost:5432/database):",
@@ -28,12 +27,113 @@ const getConnectionAndIntrospectStep = createStep({
 
       return {
         connectionString: "",
-        schema: {},
-        schemaPresentation: "",
       };
     }
 
     const { connectionString } = resumeData;
+    return { connectionString };
+  },
+});
+
+// Step 2: Ask if user wants to seed database
+const seedDatabaseStep = createStep({
+  id: "seed-database",
+  inputSchema: z.object({
+    connectionString: z.string(),
+  }),
+  outputSchema: z.object({
+    connectionString: z.string(),
+    seeded: z.boolean(),
+    seedResult: z.object({
+      success: z.boolean(),
+      message: z.string(),
+      recordCount: z.number().optional(),
+      tablesCreated: z.array(z.string()).optional(),
+    }).optional(),
+  }),
+  resumeSchema: z.object({
+    seedDatabase: z.boolean(),
+  }),
+  suspendSchema: z.object({
+    message: z.string(),
+  }),
+  execute: async ({ inputData, resumeData, suspend, runtimeContext }) => {
+    const { connectionString } = inputData;
+
+    if (resumeData === undefined) {
+      await suspend({
+        message: "Would you like to seed the database with sample cities data? This will create a 'cities' table with sample data for testing. (true/false):",
+      });
+
+      return {
+        connectionString,
+        seeded: false,
+      };
+    }
+
+    const { seedDatabase } = resumeData;
+
+    if (!seedDatabase) {
+      return {
+        connectionString,
+        seeded: false,
+      };
+    }
+
+    try {
+      // Use the database seeding tool
+      if (!databaseSeedingTool.execute) {
+        throw new Error("Database seeding tool is not available");
+      }
+
+      const seedResult = await databaseSeedingTool.execute({
+        context: { connectionString },
+        runtimeContext: runtimeContext || new RuntimeContext(),
+      });
+
+      // Type guard to ensure we have seed result
+      if (!seedResult || typeof seedResult !== 'object') {
+        throw new Error("Invalid seed result returned from seeding tool");
+      }
+
+      return {
+        connectionString,
+        seeded: true,
+        seedResult: seedResult as any,
+      };
+    } catch (error) {
+      throw new Error(`Failed to seed database: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  },
+});
+
+// Step 3: Introspect database
+const introspectDatabaseStep = createStep({
+  id: "introspect-database",
+  inputSchema: z.object({
+    connectionString: z.string(),
+    seeded: z.boolean(),
+    seedResult: z.object({
+      success: z.boolean(),
+      message: z.string(),
+      recordCount: z.number().optional(),
+      tablesCreated: z.array(z.string()).optional(),
+    }).optional(),
+  }),
+  outputSchema: z.object({
+    connectionString: z.string(),
+    schema: z.any(),
+    schemaPresentation: z.string(),
+    seeded: z.boolean(),
+    seedResult: z.object({
+      success: z.boolean(),
+      message: z.string(),
+      recordCount: z.number().optional(),
+      tablesCreated: z.array(z.string()).optional(),
+    }).optional(),
+  }),
+  execute: async ({ inputData, runtimeContext }) => {
+    const { connectionString, seeded, seedResult } = inputData;
 
     try {
       // Use the database introspection tool
@@ -58,6 +158,8 @@ const getConnectionAndIntrospectStep = createStep({
         connectionString,
         schema: schemaData,
         schemaPresentation,
+        seeded,
+        seedResult,
       };
     } catch (error) {
       throw new Error(`Failed to introspect database: ${error instanceof Error ? error.message : String(error)}`);
@@ -65,13 +167,20 @@ const getConnectionAndIntrospectStep = createStep({
   },
 });
 
-// Step 2: Get natural language query and generate SQL
+// Step 4: Get natural language query and generate SQL
 const generateSQLStep = createStep({
   id: "generate-sql",
   inputSchema: z.object({
     connectionString: z.string(),
     schema: z.any(),
     schemaPresentation: z.string(),
+    seeded: z.boolean(),
+    seedResult: z.object({
+      success: z.boolean(),
+      message: z.string(),
+      recordCount: z.number().optional(),
+      tablesCreated: z.array(z.string()).optional(),
+    }).optional(),
   }),
   outputSchema: z.object({
     connectionString: z.string(),
@@ -84,6 +193,7 @@ const generateSQLStep = createStep({
       tables_used: z.array(z.string()),
     }),
     schemaPresentation: z.string(),
+    seeded: z.boolean(),
   }),
   resumeSchema: z.object({
     naturalLanguageQuery: z.string(),
@@ -91,14 +201,23 @@ const generateSQLStep = createStep({
   suspendSchema: z.object({
     schemaPresentation: z.string(),
     message: z.string(),
+    seeded: z.boolean(),
+    seedResult: z.object({
+      success: z.boolean(),
+      message: z.string(),
+      recordCount: z.number().optional(),
+      tablesCreated: z.array(z.string()).optional(),
+    }).optional(),
   }),
   execute: async ({ inputData, resumeData, suspend, runtimeContext }) => {
-    const { connectionString, schema, schemaPresentation } = inputData;
+    const { connectionString, schema, schemaPresentation, seeded, seedResult } = inputData;
 
-    if (!resumeData?.naturalLanguageQuery) {
+        if (!resumeData?.naturalLanguageQuery) {
       await suspend({
         schemaPresentation,
         message: "Please enter your natural language query (e.g., 'Show me the top 10 cities by population'):",
+        seeded,
+        seedResult,
       });
 
       return {
@@ -112,6 +231,7 @@ const generateSQLStep = createStep({
           tables_used: [],
         },
         schemaPresentation,
+        seeded,
       };
     }
 
@@ -141,6 +261,7 @@ const generateSQLStep = createStep({
         naturalLanguageQuery,
         generatedSQL: generatedSQL as any,
         schemaPresentation,
+        seeded,
       };
     } catch (error) {
       throw new Error(`Failed to generate SQL: ${error instanceof Error ? error.message : String(error)}`);
@@ -148,7 +269,7 @@ const generateSQLStep = createStep({
   },
 });
 
-// Step 3: Review SQL and execute query
+// Step 5: Review SQL and execute query
 const reviewAndExecuteStep = createStep({
   id: "review-and-execute",
   inputSchema: z.object({
@@ -162,6 +283,7 @@ const reviewAndExecuteStep = createStep({
       tables_used: z.array(z.string()),
     }),
     schemaPresentation: z.string(),
+    seeded: z.boolean(),
   }),
   outputSchema: z.object({
     success: z.boolean(),
@@ -263,11 +385,13 @@ export const databaseQueryWorkflow = createWorkflow({
     modifications: z.string().optional(),
     rowCount: z.number().optional(),
   }),
-  steps: [getConnectionAndIntrospectStep, generateSQLStep, reviewAndExecuteStep],
+  steps: [getConnectionStep, seedDatabaseStep, introspectDatabaseStep, generateSQLStep, reviewAndExecuteStep],
 });
 
 databaseQueryWorkflow
-  .then(getConnectionAndIntrospectStep)
+  .then(getConnectionStep)
+  .then(seedDatabaseStep)
+  .then(introspectDatabaseStep)
   .then(generateSQLStep)
   .then(reviewAndExecuteStep)
   .commit();

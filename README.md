@@ -72,17 +72,26 @@ Safely executes SQL queries:
 
 The main workflow (`databaseQueryWorkflow`) is a multi-step interactive workflow that performs:
 
-#### Step 1: Connection and Introspection
+#### Step 1: Database Connection
 - **Suspends** to collect database connection string from user
-- **Introspects** database schema including tables, columns, relationships, and indexes
-- **Generates** human-readable schema presentation
+- **Validates** connection to ensure database is accessible
 
-#### Step 2: Natural Language to SQL Generation
+#### Step 2: Database Seeding (Optional)
+- **Suspends** to ask if user wants to seed database with sample data
+- **Creates** cities table with sample data if requested
+- **Provides** immediate data for testing and demonstration
+
+#### Step 3: Schema Introspection
+- **Automatically** introspects database schema (tables, columns, relationships, indexes)
+- **Generates** human-readable schema presentation
+- **Analyzes** database structure and relationships
+
+#### Step 4: Natural Language to SQL Generation
 - **Suspends** to collect natural language query from user
 - **Shows** database schema information to help user formulate queries
 - **Generates** SQL query using AI with confidence scores and explanations
 
-#### Step 3: SQL Review and Execution
+#### Step 5: SQL Review and Execution
 - **Suspends** to show generated SQL and get user approval
 - **Allows** user to modify the SQL query if needed
 - **Executes** the approved/modified query against the database
@@ -98,17 +107,25 @@ let result = await run.start({ inputData: {} });
 
 // Step 1: Provide connection string
 result = await run.resume({
-  step: "get-connection-and-introspect",
+  step: "get-connection",
   resumeData: { connectionString: "postgresql://..." }
 });
 
-// Step 2: Provide natural language query
+// Step 2: Choose whether to seed database
+result = await run.resume({
+  step: "seed-database",
+  resumeData: { seedDatabase: true }
+});
+
+// Step 3: Database introspection happens automatically
+
+// Step 4: Provide natural language query
 result = await run.resume({
   step: "generate-sql",
   resumeData: { naturalLanguageQuery: "Show me top 10 cities by population" }
 });
 
-// Step 3: Review and approve SQL
+// Step 5: Review and approve SQL
 result = await run.resume({
   step: "review-and-execute",
   resumeData: {
@@ -157,11 +174,12 @@ npx tsx src/demo-interactive-workflow.ts
 
 This interactive demo will:
 1. Prompt you for a database connection string
-2. Show you the introspected schema
-3. Ask for your natural language query
-4. Show the generated SQL with explanations
-5. Let you approve or modify the query
-6. Execute and display results
+2. Ask if you want to seed the database with sample data
+3. Automatically introspect the database schema
+4. Ask for your natural language query
+5. Show the generated SQL with explanations
+6. Let you approve or modify the query
+7. Execute and display results
 
 ### Using in Your Application
 

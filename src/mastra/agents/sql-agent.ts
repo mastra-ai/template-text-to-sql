@@ -1,6 +1,5 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
-import { populationInfo } from '../tools/population-info-tool';
 
 export const sqlAgent = new Agent({
   name: 'SQL Agent',
@@ -59,6 +58,5 @@ export const sqlAgent = new Agent({
     `,
   model: openai('gpt-4o'),
   tools: {
-    populationInfo,
   },
 });
