@@ -22,6 +22,7 @@
     "@mastra/libsql": "^0.11.0",
     "@mastra/loggers": "^0.10.3",
     "@mastra/memory": "^0.11.1",
+    "ai": "^4.3.17",
     "csv-parse": "^5.6.0",
     "dotenv": "^17.0.1",
     "pg": "^8.16.3",
