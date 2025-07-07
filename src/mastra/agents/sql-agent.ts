@@ -1,9 +1,18 @@
 import { openai } from '@ai-sdk/openai';
 import { Agent } from '@mastra/core/agent';
+import { LibSQLStore } from '@mastra/libsql';
+import { Memory } from '@mastra/memory';
 import { databaseIntrospectionTool } from '../tools/database-introspection-tool';
 import { databaseSeedingTool } from '../tools/database-seeding-tool';
-import { sqlGenerationTool } from '../tools/sql-generation-tool';
 import { sqlExecutionTool } from '../tools/sql-execution-tool';
+import { sqlGenerationTool } from '../tools/sql-generation-tool';
+
+// Initialize memory with LibSQLStore for persistence
+const memory = new Memory({
+  storage: new LibSQLStore({
+    url: 'file:../mastra.db', // Or your database URL
+  }),
+});
 
 export const sqlAgent = new Agent({
   name: 'SQL Agent',
@@ -128,4 +137,5 @@ export const sqlAgent = new Agent({
     sqlGenerationTool,
     sqlExecutionTool,
   },
+  memory,
 });
