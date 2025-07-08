@@ -96,19 +96,19 @@ const LOCATIONS = [
 ];
 
 const DEPARTMENTS = [
-  { id: 1, company_id: 1, name: "Engineering", budget: 5000000, head_count: 150 },
-  { id: 2, company_id: 1, name: "Product Management", budget: 1200000, head_count: 25 },
-  { id: 3, company_id: 1, name: "Sales", budget: 2800000, head_count: 80 },
-  { id: 4, company_id: 1, name: "Marketing", budget: 1800000, head_count: 35 },
+  { id: 1, company_id: 1, name: "Engineering", budget: 5000000, head_count: 10 },
+  { id: 2, company_id: 1, name: "Product Management", budget: 1200000, head_count: 10 },
+  { id: 3, company_id: 1, name: "Sales", budget: 2800000, head_count: 10 },
+  { id: 4, company_id: 1, name: "Marketing", budget: 1800000, head_count: 20 },
   { id: 5, company_id: 1, name: "Human Resources", budget: 900000, head_count: 15 },
-  { id: 6, company_id: 2, name: "Investment Banking", budget: 8000000, head_count: 120 },
+  { id: 6, company_id: 2, name: "Investment Banking", budget: 8000000, head_count: 20 },
   { id: 7, company_id: 2, name: "Risk Management", budget: 1500000, head_count: 45 },
   { id: 8, company_id: 2, name: "Compliance", budget: 1200000, head_count: 30 },
-  { id: 9, company_id: 3, name: "Research & Development", budget: 3500000, head_count: 85 },
-  { id: 10, company_id: 3, name: "Operations", budget: 2200000, head_count: 60 },
-  { id: 11, company_id: 4, name: "Clinical Research", budget: 4200000, head_count: 95 },
-  { id: 12, company_id: 4, name: "Regulatory Affairs", budget: 1800000, head_count: 35 },
-  { id: 13, company_id: 5, name: "Software Development", budget: 2500000, head_count: 45 },
+  { id: 9, company_id: 3, name: "Research & Development", budget: 3500000, head_count: 25 },
+  { id: 10, company_id: 3, name: "Operations", budget: 2200000, head_count: 10 },
+  { id: 11, company_id: 4, name: "Clinical Research", budget: 4200000, head_count: 25 },
+  { id: 12, company_id: 4, name: "Regulatory Affairs", budget: 1800000, head_count: 15 },
+  { id: 13, company_id: 5, name: "Software Development", budget: 2500000, head_count: 25 },
   { id: 14, company_id: 5, name: "Content Creation", budget: 800000, head_count: 20 },
 ];
 
@@ -173,7 +173,8 @@ function generateEmployees(): Employee[] {
     for (let i = 0; i < employeeCount; i++) {
       const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
       const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
-      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}@${COMPANIES.find(c => c.id === dept.company_id)?.name.toLowerCase().replace(/\s+/g, '') || 'company'}.com`;
+      const companyName = COMPANIES.find(c => c.id === dept.company_id)?.name.toLowerCase().replace(/\s+/g, '') || 'company';
+      const email = `${firstName.toLowerCase()}.${lastName.toLowerCase()}.${employeeId}@${companyName}.com`;
 
       // Get appropriate job title for department
       const deptJobTitles = JOB_TITLES.filter(jt => jt.department_type === dept.name ||
@@ -234,19 +235,8 @@ function generateEmployees(): Employee[] {
     }
   });
 
-  // Set some managers
-  employees.forEach(emp => {
-    if (Math.random() > 0.85) { // 15% chance of having a manager
-      const potentialManagers = employees.filter(e =>
-        e.department_id === emp.department_id &&
-        e.id !== emp.id &&
-        JOB_TITLES.find(jt => jt.id === e.job_title_id)?.level === "Management"
-      );
-      if (potentialManagers.length > 0) {
-        emp.manager_id = potentialManagers[Math.floor(Math.random() * potentialManagers.length)].id;
-      }
-    }
-  });
+    // Don't set managers here - we'll do it after all employees are inserted
+  // This prevents foreign key constraint violations
 
   return employees;
 }
@@ -292,6 +282,23 @@ function generateProjects(): Project[] {
 }
 
 async function createTables(client: Client): Promise<void> {
+  // Drop existing tables in reverse order to handle foreign key constraints
+  const dropQueries = [
+    "DROP TABLE IF EXISTS salary_history CASCADE",
+    "DROP TABLE IF EXISTS project_assignments CASCADE",
+    "DROP TABLE IF EXISTS employee_skills CASCADE",
+    "DROP TABLE IF EXISTS projects CASCADE",
+    "DROP TABLE IF EXISTS employees CASCADE",
+    "DROP TABLE IF EXISTS skills CASCADE",
+    "DROP TABLE IF EXISTS job_titles CASCADE",
+    "DROP TABLE IF EXISTS departments CASCADE",
+    "DROP TABLE IF EXISTS locations CASCADE",
+    "DROP TABLE IF EXISTS companies CASCADE"
+  ];
+
+	await Promise.all(dropQueries.map(query => client.query(query)));
+  console.log("✅ Existing tables dropped");
+
   const tables = [
     `CREATE TABLE IF NOT EXISTS companies (
       id SERIAL PRIMARY KEY,
@@ -414,28 +421,8 @@ async function createTables(client: Client): Promise<void> {
 async function seedData(client: Client): Promise<number> {
   let totalRecords = 0;
 
-  try {
-    // Clear existing data first (in a separate transaction)
-    await client.query("BEGIN");
-    const clearQueries = [
-      "DELETE FROM salary_history",
-      "DELETE FROM project_assignments",
-      "DELETE FROM employee_skills",
-      "DELETE FROM projects",
-      "DELETE FROM employees",
-      "DELETE FROM skills",
-      "DELETE FROM job_titles",
-      "DELETE FROM departments",
-      "DELETE FROM locations",
-      "DELETE FROM companies"
-    ];
-
-		await Promise.all(clearQueries.map(query => client.query(query)));
-
-    await client.query("COMMIT");
-    console.log("✅ Existing data cleared");
-
-    // Insert core data in separate transaction
+    try {
+    // Tables are already dropped and recreated, so we can start inserting data
     await client.query("BEGIN");
 
 		// Insert companies
@@ -496,28 +483,52 @@ async function seedData(client: Client): Promise<number> {
 
       console.log(`✅ Inserted employees batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(employees.length / batchSize)}`);
     }
-    totalRecords += employees.length;
+        totalRecords += employees.length;
     await client.query("COMMIT");
     console.log("✅ All employees inserted");
 
-        // Generate employee skills in batches
+    // Now set up manager relationships
+    console.log("📊 Setting up manager relationships...");
+    await client.query("BEGIN");
+    let managerUpdates = 0;
+
+    for (const employee of employees) {
+      if (Math.random() > 0.85) { // 15% chance of having a manager
+        const potentialManagers = employees.filter(e =>
+          e.department_id === employee.department_id &&
+          e.id !== employee.id &&
+          JOB_TITLES.find(jt => jt.id === e.job_title_id)?.level === "Management"
+        );
+        if (potentialManagers.length > 0) {
+          const managerId = potentialManagers[Math.floor(Math.random() * potentialManagers.length)].id;
+          await client.query(`
+            UPDATE employees SET manager_id = $1 WHERE id = $2
+          `, [managerId, employee.id]);
+          managerUpdates++;
+        }
+      }
+    }
+
+    await client.query("COMMIT");
+    console.log(`✅ Manager relationships set up (${managerUpdates} assignments)`);
+
+    // Generate employee skills in batches
     console.log("📊 Generating employee skills...");
     await client.query("BEGIN");
     let skillRecords = 0;
     let processedEmployees = 0;
 
-    for (const employee of employees) {
+        for (const employee of employees) {
       const skillCount = Math.floor(Math.random() * 5) + 2; // 2-6 skills per employee
       const employeeSkills = SKILLS.sort(() => 0.5 - Math.random()).slice(0, skillCount);
 
-			const proficiencyLevels = ["Beginner", "Intermediate", "Advanced", "Expert"];
-			await Promise.all(employeeSkills.map(skill => {
-				skillRecords++;
-				return client.query(`
+      const proficiencyLevels = ["Beginner", "Intermediate", "Advanced", "Expert"];
+			await Promise.all(employeeSkills.map(skill => client.query(`
 				INSERT INTO employee_skills (employee_id, skill_id, proficiency_level, years_experience, certified)
 				VALUES ($1, $2, $3, $4, $5)
-			`, [employee.id, skill.id, proficiencyLevels[Math.floor(Math.random() * proficiencyLevels.length)], Math.floor(Math.random() * 8) + 1, Math.random() > 0.7])}));
+			`, [employee.id, skill.id, proficiencyLevels[Math.floor(Math.random() * proficiencyLevels.length)], Math.floor(Math.random() * 8) + 1, Math.random() > 0.7])));
 
+      skillRecords += employeeSkills.length;
       processedEmployees++;
       if (processedEmployees % 100 === 0) {
         console.log(`✅ Processed skills for ${processedEmployees}/${employees.length} employees`);
@@ -551,14 +562,14 @@ async function seedData(client: Client): Promise<number> {
       const teamSize = Math.floor(Math.random() * 8) + 3; // 3-10 people per project
       const projectTeam = companyEmployees.sort(() => 0.5 - Math.random()).slice(0, Math.min(teamSize, companyEmployees.length));
 
-      const roles = ["Lead Developer", "Developer", "Designer", "Project Manager", "QA Engineer", "Business Analyst", "DevOps Engineer"];
+            const roles = ["Lead Developer", "Developer", "Designer", "Project Manager", "QA Engineer", "Business Analyst", "DevOps Engineer"];
 
-		await Promise.all(projectTeam.map(employee => {
-			assignmentRecords++;
-			return client.query(`
+		await Promise.all(projectTeam.map(employee => client.query(`
 			INSERT INTO project_assignments (project_id, employee_id, role, allocation_percentage, start_date, end_date)
 			VALUES ($1, $2, $3, $4, $5, $6)
-		`, [project.id, employee.id, roles[Math.floor(Math.random() * roles.length)], Math.floor(Math.random() * 50) + 25, project.start_date, project.end_date])}));
+		`, [project.id, employee.id, roles[Math.floor(Math.random() * roles.length)], Math.floor(Math.random() * 50) + 25, project.start_date, project.end_date])));
+
+		assignmentRecords += projectTeam.length;
     }
     totalRecords += assignmentRecords;
     await client.query("COMMIT");
@@ -595,8 +606,18 @@ async function seedData(client: Client): Promise<number> {
     console.log(`🎉 Database seeded successfully with ${totalRecords} total records`);
 
     return totalRecords;
-  } catch (error) {
+  } catch (error: any) {
     console.error("❌ Error during seeding:", error);
+
+    // Specific handling for constraint violations
+    if (error.code === '23505') {
+      console.error("❌ Unique constraint violation:", error.detail);
+      console.error("💡 This usually means data already exists. The tool now auto-drops tables to prevent this.");
+    } else if (error.code === '23503') {
+      console.error("❌ Foreign key constraint violation:", error.detail);
+      console.error("💡 This usually means referenced data doesn't exist. Manager relationships are now set up after all employees are inserted.");
+    }
+
     try {
       await client.query("ROLLBACK");
     } catch (rollbackError) {
@@ -613,12 +634,11 @@ export const databaseSeedingTool = createTool({
   }),
   description: "Seeds the database with comprehensive business data including companies, employees, projects, skills, and their relationships",
   execute: async ({ context: { connectionString } }) => {
-        const client = new Client({
+            const client = new Client({
       connectionString,
-			query_timeout: 180000, // 3 minutes
-      connectionTimeoutMillis: 70000, // 70 seconds
+      connectionTimeoutMillis: 30000, // 30 seconds
       statement_timeout: 180000, // 3 minutes
-			idle_in_transaction_session_timeout: 180000, // 3 minutes
+      query_timeout: 180000 // 3 minutes
     });
 
     try {

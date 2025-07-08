@@ -322,6 +322,36 @@ This demo will:
 2. Run 8 different complex query examples
 3. Show the types of insights possible with the dataset
 
+### **🛠️ Bug Fixes & Improvements**
+
+Recent fixes to resolve seeding issues:
+
+```bash
+npx tsx src/test-seeding-fix.ts
+```
+
+#### **✅ Email Uniqueness Fixed**
+- **Problem**: Duplicate emails causing `employees_email_key` constraint violations
+- **Solution**: Emails now include employee ID (e.g., `john.smith.42@company.com`)
+- **Benefit**: Eliminates unique constraint errors during seeding
+
+#### **✅ Foreign Key Constraints Fixed**
+- **Problem**: Manager references to non-existent employee IDs causing `employees_manager_id_fkey` violations
+- **Solution**: Insert all employees first, then update manager relationships in a separate step
+- **Benefit**: Prevents foreign key constraint errors during parallel employee insertion
+
+#### **✅ Connection Stability**
+- **Improved Timeouts**: 30s connection, 3min statements/queries
+- **Auto Table Dropping**: Automatically drops/recreates tables to prevent conflicts
+- **Parallel Processing**: Uses `Promise.all()` for faster, more efficient inserts
+- **Better Error Handling**: Clear messages for unique & foreign key constraint violations with troubleshooting hints
+
+#### **✅ Transaction Management**
+- **Batched Operations**: Data inserted in smaller, manageable chunks
+- **Proper Rollback**: Clean transaction cleanup on failures
+- **Progress Logging**: Shows exactly where seeding process is at each step
+- **Memory Efficiency**: Processes large datasets without memory issues
+
 ### **💡 Query Ideas**
 
 The enhanced dataset supports queries about:
