@@ -109,7 +109,8 @@ const result = await sqlAgent.generate(
   [
     {
       role: 'user',
-      content: 'Seed the database with sample cities data for testing',
+      content:
+        'Seed the database with comprehensive business data including companies, employees, projects, and skills',
     },
   ],
   { maxSteps: 3 }
@@ -249,6 +250,92 @@ OPENAI_API_KEY=your-openai-api-key
 ✅ **Multi-tool Orchestration** - Agent automatically uses appropriate tools
 ✅ **Type Safety** - Full TypeScript support with Zod validation
 ✅ **Error Handling** - Comprehensive error management throughout workflow
+
+## Enhanced Dataset
+
+The seeding tool now provides a comprehensive business dataset with realistic relationships:
+
+### **📊 Dataset Overview**
+
+- **5 Companies** across different industries (Technology, Finance, Healthcare, etc.)
+- **7 Office Locations** with geographic distribution
+- **14 Departments** with budgets and head counts
+- **20 Job Titles** with career levels (Junior, Mid, Senior, Staff, Management)
+- **20 Skills** across programming languages, frameworks, and tools
+- **~400-500 Employees** with realistic salary distributions
+- **~40-60 Projects** with various statuses and budgets
+- **Relationships**: Employee-skill mappings, project assignments, salary history
+
+### **🔍 Complex Query Examples**
+
+The enhanced dataset enables sophisticated queries:
+
+```sql
+-- Employee analysis with skills
+SELECT e.first_name, e.last_name, jt.title, d.name as department,
+       c.name as company, e.salary,
+       STRING_AGG(s.name, ', ') as skills
+FROM employees e
+JOIN job_titles jt ON e.job_title_id = jt.id
+JOIN departments d ON e.department_id = d.id
+JOIN companies c ON e.company_id = c.id
+LEFT JOIN employee_skills es ON e.id = es.employee_id
+LEFT JOIN skills s ON es.skill_id = s.id
+GROUP BY e.id, jt.title, d.name, c.name, e.salary
+ORDER BY e.salary DESC LIMIT 10;
+
+-- Project team composition
+SELECT p.name as project, c.name as company, p.budget, p.status,
+       COUNT(pa.employee_id) as team_size,
+       STRING_AGG(DISTINCT s.name, ', ') as team_skills
+FROM projects p
+JOIN companies c ON p.company_id = c.id
+LEFT JOIN project_assignments pa ON p.id = pa.project_id
+LEFT JOIN employees e ON pa.employee_id = e.id
+LEFT JOIN employee_skills es ON e.id = es.employee_id
+LEFT JOIN skills s ON es.skill_id = s.id
+GROUP BY p.id, c.name, p.budget, p.status
+ORDER BY p.budget DESC;
+
+-- Salary analysis by department
+SELECT c.name as company, d.name as department,
+       AVG(e.salary) as avg_salary, COUNT(e.id) as employee_count,
+       MIN(e.salary) as min_salary, MAX(e.salary) as max_salary
+FROM employees e
+JOIN departments d ON e.department_id = d.id
+JOIN companies c ON e.company_id = c.id
+GROUP BY c.name, d.name
+ORDER BY avg_salary DESC;
+```
+
+### **🎯 Demo Script**
+
+Run the enhanced seeding demonstration:
+
+```bash
+npx tsx src/demo-enhanced-seeding.ts
+```
+
+This demo will:
+
+1. Seed the database with comprehensive business data
+2. Run 8 different complex query examples
+3. Show the types of insights possible with the dataset
+
+### **💡 Query Ideas**
+
+The enhanced dataset supports queries about:
+
+- Employee hierarchies and reporting structures
+- Skill distributions and proficiency levels
+- Project team compositions and allocations
+- Salary analysis and career progression
+- Cross-company comparisons and analytics
+- Geographic workforce distribution
+- Department budgets and performance
+- Employee-skill matching for projects
+- Compensation history and trends
+- Multi-table joins with complex relationships
 
 ## Future Enhancements
 
