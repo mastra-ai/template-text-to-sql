@@ -226,7 +226,6 @@ pnpm install
    Create a `.env` file with your database connection:
 
 ```env
-DATABASE_URL=postgresql://user:password@localhost:5432/database
 OPENAI_API_KEY=your-openai-api-key
 ```
 
