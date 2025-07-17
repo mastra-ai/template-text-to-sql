@@ -94,11 +94,10 @@ const result = await sqlAgent.generate(
   [
     {
       role: 'user',
-      content:
-        'Connect to postgresql://user:password@localhost:5432/database and analyze the schema',
+      content: 'Connect to postgresql://user:password@localhost:5432/database and analyze the schema',
     },
   ],
-  { maxSteps: 5 }
+  { maxSteps: 5 },
 );
 ```
 
@@ -113,7 +112,7 @@ const result = await sqlAgent.generate(
         'Seed the database with comprehensive business data including companies, employees, projects, and skills',
     },
   ],
-  { maxSteps: 3 }
+  { maxSteps: 3 },
 );
 ```
 
@@ -127,7 +126,7 @@ const result = await sqlAgent.generate(
       content: 'Show me the top 10 most populous cities in Europe',
     },
   ],
-  { maxSteps: 5 }
+  { maxSteps: 5 },
 );
 ```
 
