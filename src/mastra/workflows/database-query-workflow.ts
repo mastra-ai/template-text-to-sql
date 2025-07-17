@@ -52,7 +52,7 @@ const seedDatabaseStep = createStep({
     }).optional(),
   }),
   resumeSchema: z.object({
-    seedDatabase: z.boolean(),
+    seedDatabase: z.boolean().optional(),
   }),
   suspendSchema: z.object({
     message: z.string(),
@@ -293,7 +293,7 @@ const reviewAndExecuteStep = createStep({
     rowCount: z.number().optional(),
   }),
   resumeSchema: z.object({
-    approved: z.boolean(),
+    approved: z.boolean().optional(),
     modifiedSQL: z.string().optional(),
   }),
   suspendSchema: z.object({

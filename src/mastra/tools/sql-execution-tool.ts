@@ -1,27 +1,26 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { Pool } from "pg";
+import { Client } from "pg";
 
 const createDatabaseConnection = (connectionString: string) => {
-  return new Pool({
+  return new Client({
     connectionString,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 20000,
+    connectionTimeoutMillis: 30000, // 30 seconds
+    statement_timeout: 60000, // 1 minute
+    query_timeout: 60000 // 1 minute
   });
 };
 
-const executeQuery = async (pool: Pool, query: string) => {
-  const client = await pool.connect();
+const executeQuery = async (client: Client, query: string) => {
   try {
+    console.log("Executing query:", query);
     const result = await client.query(query);
+    console.log("Query result:", result.rows);
     return result.rows;
   } catch (error) {
     throw new Error(
       `Failed to execute query: ${error instanceof Error ? error.message : String(error)}`
     );
-  } finally {
-    client.release();
   }
 };
 
@@ -33,15 +32,19 @@ export const sqlExecutionTool = createTool({
   }),
   description: "Executes SQL queries against a PostgreSQL database",
   execute: async ({ context: { connectionString, query } }) => {
-    const pool = createDatabaseConnection(connectionString);
+    const client = createDatabaseConnection(connectionString);
 
     try {
+      console.log("🔌 Connecting to PostgreSQL for query execution...");
+      await client.connect();
+      console.log("✅ Connected to PostgreSQL for query execution");
+
       const trimmedQuery = query.trim().toLowerCase();
       if (!trimmedQuery.startsWith("select")) {
         throw new Error("Only SELECT queries are allowed for security reasons");
       }
 
-      const result = await executeQuery(pool, query);
+      const result = await executeQuery(client, query);
 
       return {
         success: true,
@@ -56,7 +59,7 @@ export const sqlExecutionTool = createTool({
         executedQuery: query,
       };
     } finally {
-      await pool.end();
+      await client.end();
     }
   },
 });
