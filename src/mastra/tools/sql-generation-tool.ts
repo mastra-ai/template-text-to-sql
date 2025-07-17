@@ -60,6 +60,7 @@ export const sqlGenerationTool = createTool({
   description: "Generates SQL queries from natural language descriptions using database schema information",
   execute: async ({ context: { naturalLanguageQuery, databaseSchema } }) => {
     try {
+      console.log("🔌 Generating SQL query for:", naturalLanguageQuery);
       // Create a comprehensive schema description for the AI
       const schemaDescription = createSchemaDescription(databaseSchema);
 

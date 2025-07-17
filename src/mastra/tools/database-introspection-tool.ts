@@ -1,18 +1,17 @@
 import { createTool } from "@mastra/core/tools";
 import { z } from "zod";
-import { Pool } from "pg";
+import { Client } from "pg";
 
 const createDatabaseConnection = (connectionString: string) => {
-  return new Pool({
+  return new Client({
     connectionString,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 20000,
+    connectionTimeoutMillis: 30000, // 30 seconds
+    statement_timeout: 60000, // 1 minute
+    query_timeout: 60000 // 1 minute
   });
 };
 
-const executeQuery = async (pool: Pool, query: string) => {
-  const client = await pool.connect();
+const executeQuery = async (client: Client, query: string) => {
   try {
     const result = await client.query(query);
     return result.rows;
@@ -20,8 +19,6 @@ const executeQuery = async (pool: Pool, query: string) => {
     throw new Error(
       `Failed to execute query: ${error instanceof Error ? error.message : String(error)}`
     );
-  } finally {
-    client.release();
   }
 };
 
@@ -32,9 +29,13 @@ export const databaseIntrospectionTool = createTool({
   }),
   description: "Introspects a PostgreSQL database to understand its schema, tables, columns, and relationships",
   execute: async ({ context: { connectionString } }) => {
-    const pool = createDatabaseConnection(connectionString);
+    const client = createDatabaseConnection(connectionString);
 
     try {
+      console.log("🔌 Connecting to PostgreSQL for introspection...");
+      await client.connect();
+      console.log("✅ Connected to PostgreSQL for introspection");
+
       // Get all tables
       const tablesQuery = `
         SELECT
@@ -46,7 +47,7 @@ export const databaseIntrospectionTool = createTool({
         ORDER BY schemaname, tablename;
       `;
 
-      const tables = await executeQuery(pool, tablesQuery);
+      const tables = await executeQuery(client, tablesQuery);
 
       // Get detailed column information for each table
       const columnsQuery = `
@@ -79,7 +80,7 @@ export const databaseIntrospectionTool = createTool({
         ORDER BY t.table_schema, t.table_name, c.ordinal_position;
       `;
 
-      const columns = await executeQuery(pool, columnsQuery);
+      const columns = await executeQuery(client, columnsQuery);
 
       // Get foreign key relationships
       const relationshipsQuery = `
@@ -102,7 +103,7 @@ export const databaseIntrospectionTool = createTool({
         ORDER BY tc.table_schema, tc.table_name, kcu.column_name;
       `;
 
-      const relationships = await executeQuery(pool, relationshipsQuery);
+      const relationships = await executeQuery(client, relationshipsQuery);
 
       // Get indexes
       const indexesQuery = `
@@ -116,13 +117,13 @@ export const databaseIntrospectionTool = createTool({
         ORDER BY schemaname, tablename, indexname;
       `;
 
-      const indexes = await executeQuery(pool, indexesQuery);
+      const indexes = await executeQuery(client, indexesQuery);
 
       // Get table row counts (sample)
       const rowCountsPromises = tables.map(async (table) => {
         try {
           const countQuery = `SELECT COUNT(*) as row_count FROM "${table.schema_name}"."${table.table_name}";`;
-          const result = await executeQuery(pool, countQuery);
+          const result = await executeQuery(client, countQuery);
           return {
             schema_name: table.schema_name,
             table_name: table.table_name,
@@ -158,7 +159,7 @@ export const databaseIntrospectionTool = createTool({
         `Failed to introspect database: ${error instanceof Error ? error.message : String(error)}`
       );
     } finally {
-      await pool.end();
+      await client.end();
     }
   },
 });
