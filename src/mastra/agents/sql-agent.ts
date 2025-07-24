@@ -1,4 +1,4 @@
-import { openai } from '@ai-sdk/openai';
+import { groq } from '@ai-sdk/groq';
 import { Agent } from '@mastra/core/agent';
 import { LibSQLStore } from '@mastra/libsql';
 import { Memory } from '@mastra/memory';
@@ -153,7 +153,7 @@ export const sqlAgent = new Agent({
     Do NOT stop after generating SQL. Always execute it to provide the actual data.
 
     Always prioritize user safety, data security, and clear communication throughout the interaction.`,
-  model: openai('gpt-4.1-mini'),
+  model: groq(process.env.MODEL ?? "llama-3.3-70b-versatile"),
   tools: {
     databaseIntrospectionTool,
     databaseSeedingTool,
