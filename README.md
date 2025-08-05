@@ -5,7 +5,7 @@ This project provides a Mastra workflow system for database introspection and na
 ## Features
 
 - **Database Introspection**: Automatically analyzes PostgreSQL database schemas including tables, columns, relationships, and indexes
-- **Natural Language to SQL**: Converts natural language queries into SQL using OpenAI's GPT models
+- **Natural Language to SQL**: Converts natural language queries into SQL using Groq's GPT models
 - **Schema Presentation**: Generates human-readable documentation of database schemas
 - **Safe Query Execution**: Only allows SELECT queries for security
 - **Workflow Integration**: Built using Mastra workflows for orchestration and management
@@ -57,7 +57,7 @@ Seeds databases with sample data for testing:
 
 ### 3. SQL Generation Tool (`sql-generation-tool.ts`)
 
-Converts natural language queries to SQL using OpenAI's GPT-4:
+Converts natural language queries to SQL using Groq's GPT-4:
 
 - Analyzes database schema context
 - Generates optimized SELECT queries
@@ -225,7 +225,7 @@ pnpm install
    Create a `.env` file with your database connection:
 
 ```env
-OPENAI_API_KEY=your-openai-api-key
+GROQ_API_KEY=your-openai-api-key
 ```
 
 ## Security Notes
@@ -284,7 +284,7 @@ The enhanced dataset supports queries about:
 Key dependencies:
 
 - `@mastra/core`: Workflow orchestration
-- `@ai-sdk/openai`: AI integration
+- `@ai-sdk/groq`: AI integration
 - `ai`: AI SDK for structured generation
 - `pg`: PostgreSQL client
 - `zod`: Schema validation
