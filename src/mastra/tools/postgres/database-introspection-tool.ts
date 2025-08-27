@@ -1,6 +1,6 @@
-import { createTool } from '@mastra/core/tools';
-import { z } from 'zod';
-import { Client } from 'pg';
+import { createTool } from "@mastra/core/tools";
+import { z } from "zod";
+import { Client } from "pg";
 
 const createDatabaseConnection = (connectionString: string) => {
   return new Client({
@@ -16,23 +16,26 @@ const executeQuery = async (client: Client, query: string) => {
     const result = await client.query(query);
     return result.rows;
   } catch (error) {
-    throw new Error(`Failed to execute query: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(
+      `Failed to execute query: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 };
 
 export const databaseIntrospectionTool = createTool({
-  id: 'database-introspection',
+  id: "database-introspection",
   inputSchema: z.object({
-    connectionString: z.string().describe('PostgreSQL connection string'),
+    connectionString: z.string().describe("PostgreSQL connection string"),
   }),
-  description: 'Introspects a PostgreSQL database to understand its schema, tables, columns, and relationships',
+  description:
+    "Introspects a PostgreSQL database to understand its schema, tables, columns, and relationships",
   execute: async ({ context: { connectionString } }) => {
     const client = createDatabaseConnection(connectionString);
 
     try {
-      console.log('🔌 Connecting to PostgreSQL for introspection...');
+      console.log("🔌 Connecting to PostgreSQL for introspection...");
       await client.connect();
-      console.log('✅ Connected to PostgreSQL for introspection');
+      console.log("✅ Connected to PostgreSQL for introspection");
 
       // Get all tables
       const tablesQuery = `
@@ -118,7 +121,7 @@ export const databaseIntrospectionTool = createTool({
       const indexes = await executeQuery(client, indexesQuery);
 
       // Get table row counts (sample)
-      const rowCountsPromises = tables.map(async table => {
+      const rowCountsPromises = tables.map(async (table) => {
         try {
           const countQuery = `SELECT COUNT(*) as row_count FROM "${table.schema_name}"."${table.table_name}";`;
           const result = await executeQuery(client, countQuery);
@@ -153,7 +156,9 @@ export const databaseIntrospectionTool = createTool({
         },
       };
     } catch (error) {
-      throw new Error(`Failed to introspect database: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to introspect database: ${error instanceof Error ? error.message : String(error)}`
+      );
     } finally {
       await client.end();
     }

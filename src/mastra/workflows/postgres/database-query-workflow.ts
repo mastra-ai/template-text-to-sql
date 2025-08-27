@@ -1,14 +1,15 @@
-import { createWorkflow, createStep } from '@mastra/core/workflows';
-import { z } from 'zod';
-import { databaseIntrospectionTool } from '../tools/database-introspection-tool';
-import { sqlGenerationTool } from '../tools/sql-generation-tool';
-import { sqlExecutionTool } from '../tools/sql-execution-tool';
-import { databaseSeedingTool } from '../tools/database-seeding-tool';
-import { RuntimeContext } from '@mastra/core/di';
+import { createWorkflow, createStep } from "@mastra/core/workflows";
+import { z } from "zod";
+
+import { RuntimeContext } from "@mastra/core/di";
+import { databaseSeedingTool } from "../../tools/postgres/database-seeding-tool";
+import { databaseIntrospectionTool } from "../../tools/postgres/database-introspection-tool";
+import { sqlGenerationTool } from "../../tools/postgres/sql-generation-tool";
+import { sqlExecutionTool } from "../../tools/postgres/sql-execution-tool";
 
 // Step 1: Get connection string
 const getConnectionStep = createStep({
-  id: 'get-connection',
+  id: "get-connection",
   inputSchema: z.object({}),
   outputSchema: z.object({
     connectionString: z.string(),
@@ -23,11 +24,11 @@ const getConnectionStep = createStep({
     if (!resumeData?.connectionString) {
       await suspend({
         message:
-          'Please provide your PostgreSQL connection string (e.g., postgresql://user:password@localhost:5432/database):',
+          "Please provide your PostgreSQL connection string (e.g., postgresql://user:password@localhost:5432/database):",
       });
 
       return {
-        connectionString: '',
+        connectionString: "",
       };
     }
 
@@ -38,7 +39,7 @@ const getConnectionStep = createStep({
 
 // Step 2: Ask if user wants to seed database
 const seedDatabaseStep = createStep({
-  id: 'seed-database',
+  id: "seed-database",
   inputSchema: z.object({
     connectionString: z.string(),
   }),
@@ -87,7 +88,7 @@ const seedDatabaseStep = createStep({
     try {
       // Use the database seeding tool
       if (!databaseSeedingTool.execute) {
-        throw new Error('Database seeding tool is not available');
+        throw new Error("Database seeding tool is not available");
       }
 
       const seedResult = await databaseSeedingTool.execute({
@@ -96,8 +97,8 @@ const seedDatabaseStep = createStep({
       });
 
       // Type guard to ensure we have seed result
-      if (!seedResult || typeof seedResult !== 'object') {
-        throw new Error('Invalid seed result returned from seeding tool');
+      if (!seedResult || typeof seedResult !== "object") {
+        throw new Error("Invalid seed result returned from seeding tool");
       }
 
       return {
@@ -106,14 +107,16 @@ const seedDatabaseStep = createStep({
         seedResult: seedResult as any,
       };
     } catch (error) {
-      throw new Error(`Failed to seed database: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to seed database: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   },
 });
 
 // Step 3: Introspect database
 const introspectDatabaseStep = createStep({
-  id: 'introspect-database',
+  id: "introspect-database",
   inputSchema: z.object({
     connectionString: z.string(),
     seeded: z.boolean(),
@@ -146,7 +149,7 @@ const introspectDatabaseStep = createStep({
     try {
       // Use the database introspection tool
       if (!databaseIntrospectionTool.execute) {
-        throw new Error('Database introspection tool is not available');
+        throw new Error("Database introspection tool is not available");
       }
 
       const schemaData = await databaseIntrospectionTool.execute({
@@ -155,8 +158,8 @@ const introspectDatabaseStep = createStep({
       });
 
       // Type guard to ensure we have schema data
-      if (!schemaData || typeof schemaData !== 'object') {
-        throw new Error('Invalid schema data returned from introspection');
+      if (!schemaData || typeof schemaData !== "object") {
+        throw new Error("Invalid schema data returned from introspection");
       }
 
       // Create a human-readable presentation
@@ -170,14 +173,16 @@ const introspectDatabaseStep = createStep({
         seedResult,
       };
     } catch (error) {
-      throw new Error(`Failed to introspect database: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to introspect database: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   },
 });
 
 // Step 4: Get natural language query and generate SQL
 const generateSQLStep = createStep({
-  id: 'generate-sql',
+  id: "generate-sql",
   inputSchema: z.object({
     connectionString: z.string(),
     schema: z.any(),
@@ -222,22 +227,24 @@ const generateSQLStep = createStep({
       .optional(),
   }),
   execute: async ({ inputData, resumeData, suspend, runtimeContext }) => {
-    const { connectionString, schema, schemaPresentation, seeded, seedResult } = inputData;
+    const { connectionString, schema, schemaPresentation, seeded, seedResult } =
+      inputData;
 
     if (!resumeData?.naturalLanguageQuery) {
       await suspend({
         schemaPresentation,
-        message: "Please enter your natural language query (e.g., 'Show me the top 10 cities by population'):",
+        message:
+          "Please enter your natural language query (e.g., 'Show me the top 10 cities by population'):",
         seeded,
         seedResult,
       });
 
       return {
         connectionString,
-        naturalLanguageQuery: '',
+        naturalLanguageQuery: "",
         generatedSQL: {
-          sql: '',
-          explanation: '',
+          sql: "",
+          explanation: "",
           confidence: 0,
           assumptions: [],
           tables_used: [],
@@ -252,7 +259,7 @@ const generateSQLStep = createStep({
     try {
       // Generate SQL from natural language query
       if (!sqlGenerationTool.execute) {
-        throw new Error('SQL generation tool is not available');
+        throw new Error("SQL generation tool is not available");
       }
 
       const generatedSQL = await sqlGenerationTool.execute({
@@ -264,8 +271,8 @@ const generateSQLStep = createStep({
       });
 
       // Type guard for generated SQL
-      if (!generatedSQL || typeof generatedSQL !== 'object') {
-        throw new Error('Invalid SQL generation result');
+      if (!generatedSQL || typeof generatedSQL !== "object") {
+        throw new Error("Invalid SQL generation result");
       }
 
       return {
@@ -276,14 +283,16 @@ const generateSQLStep = createStep({
         seeded,
       };
     } catch (error) {
-      throw new Error(`Failed to generate SQL: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(
+        `Failed to generate SQL: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   },
 });
 
 // Step 5: Review SQL and execute query
 const reviewAndExecuteStep = createStep({
-  id: 'review-and-execute',
+  id: "review-and-execute",
   inputSchema: z.object({
     connectionString: z.string(),
     naturalLanguageQuery: z.string(),
@@ -344,14 +353,16 @@ const reviewAndExecuteStep = createStep({
         success: false,
         finalSQL,
         queryResult: null,
-        modifications: modifiedSQL ? 'Query was modified but not approved' : 'Query was not approved',
+        modifications: modifiedSQL
+          ? "Query was modified but not approved"
+          : "Query was not approved",
       };
     }
 
     try {
       // Execute the SQL query
       if (!sqlExecutionTool.execute) {
-        throw new Error('SQL execution tool is not available');
+        throw new Error("SQL execution tool is not available");
       }
 
       const result = await sqlExecutionTool.execute({
@@ -363,8 +374,8 @@ const reviewAndExecuteStep = createStep({
       });
 
       // Type guard for execution result
-      if (!result || typeof result !== 'object') {
-        throw new Error('Invalid SQL execution result');
+      if (!result || typeof result !== "object") {
+        throw new Error("Invalid SQL execution result");
       }
 
       const executionResult = result as any;
@@ -373,7 +384,7 @@ const reviewAndExecuteStep = createStep({
         success: executionResult.success || false,
         finalSQL,
         queryResult: executionResult.data || null,
-        modifications: modifiedSQL ? 'Query was modified by user' : undefined,
+        modifications: modifiedSQL ? "Query was modified by user" : undefined,
         rowCount: executionResult.rowCount || 0,
       };
     } catch (error) {
@@ -381,7 +392,7 @@ const reviewAndExecuteStep = createStep({
         success: false,
         finalSQL,
         queryResult: null,
-        modifications: modifiedSQL ? 'Query was modified by user' : undefined,
+        modifications: modifiedSQL ? "Query was modified by user" : undefined,
         error: `Failed to execute SQL: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
@@ -390,7 +401,7 @@ const reviewAndExecuteStep = createStep({
 
 // Define the main database query workflow
 export const databaseQueryWorkflow = createWorkflow({
-  id: 'database-query-workflow',
+  id: "database-query-workflow",
   inputSchema: z.object({}),
   outputSchema: z.object({
     success: z.boolean(),
@@ -399,7 +410,13 @@ export const databaseQueryWorkflow = createWorkflow({
     modifications: z.string().optional(),
     rowCount: z.number().optional(),
   }),
-  steps: [getConnectionStep, seedDatabaseStep, introspectDatabaseStep, generateSQLStep, reviewAndExecuteStep],
+  steps: [
+    getConnectionStep,
+    seedDatabaseStep,
+    introspectDatabaseStep,
+    generateSQLStep,
+    reviewAndExecuteStep,
+  ],
 });
 
 databaseQueryWorkflow
@@ -412,7 +429,7 @@ databaseQueryWorkflow
 
 // Helper function to create human-readable schema presentation
 function createSchemaPresentation(schema: any): string {
-  let presentation = '# Database Schema Overview\n\n';
+  let presentation = "# Database Schema Overview\n\n";
 
   presentation += `## Summary\n`;
   presentation += `- **Tables**: ${schema.summary.total_tables}\n`;
@@ -436,7 +453,9 @@ function createSchemaPresentation(schema: any): string {
     const tableKey = `${table.schema_name}.${table.table_name}`;
     const columns = tableColumns.get(tableKey) || [];
     const rowCount = schema.rowCounts.find(
-      (rc: any) => rc.schema_name === table.schema_name && rc.table_name === table.table_name,
+      (rc: any) =>
+        rc.schema_name === table.schema_name &&
+        rc.table_name === table.table_name
     );
 
     presentation += `### ${table.table_name}`;
@@ -452,9 +471,9 @@ function createSchemaPresentation(schema: any): string {
       const type = column.character_maximum_length
         ? `${column.data_type}(${column.character_maximum_length})`
         : column.data_type;
-      const nullable = column.is_nullable === 'YES' ? '✓' : '✗';
-      const key = column.is_primary_key ? 'PK' : '';
-      const defaultValue = column.column_default || '';
+      const nullable = column.is_nullable === "YES" ? "✓" : "✗";
+      const key = column.is_primary_key ? "PK" : "";
+      const defaultValue = column.column_default || "";
 
       presentation += `| ${column.column_name} | ${type} | ${nullable} | ${key} | ${defaultValue} |\n`;
     });

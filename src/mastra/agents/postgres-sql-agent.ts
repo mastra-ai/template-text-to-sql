@@ -1,21 +1,21 @@
-import { openai } from '@ai-sdk/openai';
-import { Agent } from '@mastra/core/agent';
-import { LibSQLStore } from '@mastra/libsql';
-import { Memory } from '@mastra/memory';
-import { databaseIntrospectionTool } from '../tools/database-introspection-tool';
-import { databaseSeedingTool } from '../tools/database-seeding-tool';
-import { sqlExecutionTool } from '../tools/sql-execution-tool';
-import { sqlGenerationTool } from '../tools/sql-generation-tool';
+import { openai } from "@ai-sdk/openai";
+import { Agent } from "@mastra/core/agent";
+import { LibSQLStore } from "@mastra/libsql";
+import { Memory } from "@mastra/memory";
+import { databaseIntrospectionTool } from "../tools/postgres/database-introspection-tool";
+import { databaseSeedingTool } from "../tools/postgres/database-seeding-tool";
+import { sqlExecutionTool } from "../tools/postgres/sql-execution-tool";
+import { sqlGenerationTool } from "../tools/postgres/sql-generation-tool";
 
 // Initialize memory with LibSQLStore for persistence
 const memory = new Memory({
   storage: new LibSQLStore({
-    url: 'file:../mastra.db', // Or your database URL
+    url: "file:../mastra.db", // Or your database URL
   }),
 });
 
 export const sqlAgent = new Agent({
-  name: 'SQL Agent',
+  name: "SQL Agent",
   instructions: `You are an advanced PostgreSQL database assistant with comprehensive capabilities for database management and querying. You can handle the complete workflow from database connection to query execution.
 
     ## CAPABILITIES
@@ -153,7 +153,7 @@ export const sqlAgent = new Agent({
     Do NOT stop after generating SQL. Always execute it to provide the actual data.
 
     Always prioritize user safety, data security, and clear communication throughout the interaction.`,
-  model: openai('gpt-4.1-mini'),
+  model: openai("gpt-4.1-mini"),
   tools: {
     databaseIntrospectionTool,
     databaseSeedingTool,

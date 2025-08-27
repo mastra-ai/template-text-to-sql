@@ -1,13 +1,14 @@
-# Database Introspection and Natural Language to SQL Workflow
+# BigQuery Data Analytics and Natural Language to SQL Workflow
 
-This project provides a Mastra workflow system for database introspection and natural language to SQL conversion. It includes tools for analyzing database schemas, generating SQL queries from natural language descriptions, and executing queries safely.
+This project provides a Mastra workflow system for BigQuery data analytics and natural language to SQL conversion. It includes tools for analyzing BigQuery datasets, generating SQL queries from natural language descriptions, and executing queries safely using Google Cloud BigQuery.
 
 ## Features
 
-- **Database Introspection**: Automatically analyzes PostgreSQL database schemas including tables, columns, relationships, and indexes
-- **Natural Language to SQL**: Converts natural language queries into SQL using OpenAI's GPT models
-- **Schema Presentation**: Generates human-readable documentation of database schemas
-- **Safe Query Execution**: Only allows SELECT queries for security
+- **BigQuery Dataset Analysis**: Automatically analyzes BigQuery datasets including tables, columns, data types, and partitioning
+- **Natural Language to SQL**: Converts natural language queries into BigQuery Standard SQL using OpenAI's GPT models
+- **Schema Documentation**: Generates human-readable documentation of BigQuery dataset schemas
+- **Safe Query Execution**: Executes SELECT queries with BigQuery's built-in security and access controls
+- **Google Cloud Integration**: Built using Google Cloud BigQuery client with service account authentication
 - **Workflow Integration**: Built using Mastra workflows for orchestration and management
 
 ## Project Structure
@@ -16,201 +17,174 @@ This project provides a Mastra workflow system for database introspection and na
 src/
 ├── mastra/
 │   ├── agents/
-│   │   └── sql-agent.ts                    # SQL agent for query generation
+│   │   ├── postgres-sql-agent.ts           # PostgreSQL agent for legacy support
+│   │   └── bigquery-sql-agent.ts           # BigQuery agent for data analytics
 │   ├── tools/
-│   │   ├── database-introspection-tool.ts  # Database schema analysis
-│   │   ├── database-seeding-tool.ts        # Database seeding
-│   │   ├── sql-generation-tool.ts          # Natural language to SQL conversion
-│   │   └── sql-execution-tool.ts           # Safe SQL query execution
+│   │   ├── postgres/                       # PostgreSQL tools (legacy)
+│   │   │   ├── database-introspection-tool.ts
+│   │   │   ├── database-seeding-tool.ts
+│   │   │   ├── sql-generation-tool.ts
+│   │   │   └── sql-execution-tool.ts
+│   │   └── bigquery/                       # BigQuery tools
+│   │       └── bigquery-inspection-tool.ts # BigQuery dataset analysis and query execution
 │   ├── workflows/
-│   │   └── database-query-workflow.ts      # Main workflow orchestration
+│   │   ├── postgres/                       # PostgreSQL workflows (legacy)
+│   │   └── bigquery/                       # BigQuery workflows
+│   ├── Types/
+│   │   └── validation.ts                   # Zod schemas for type validation
 │   └── index.ts                           # Mastra instance configuration
 
 ```
 
 ## Tools Overview
 
-### 1. Database Introspection Tool (`database-introspection-tool.ts`)
+### BigQuery Inspection Tool (`bigquery-inspection-tool.ts`)
 
-Analyzes a PostgreSQL database to extract:
+Provides comprehensive BigQuery functionality:
 
-- Table structure and metadata
-- Column definitions with types and constraints
-- Primary key and foreign key relationships
-- Index definitions
-- Row counts for each table
+- **Query Execution**: Executes BigQuery Standard SQL queries safely
+- **Authentication**: Uses Google Cloud service account credentials
+- **Job Management**: Leverages BigQuery's async query job system
+- **Error Handling**: Provides detailed BigQuery-specific error messages
+- **Type Validation**: Ensures query results match expected schemas
 
-**Input**: Database connection string
-**Output**: Complete schema information with summary statistics
+**Key Features**:
+- Supports complex BigQuery Standard SQL syntax
+- Handles large datasets efficiently with BigQuery's scalability
+- Integrates with Google Cloud's security and access controls
+- Supports all BigQuery data types and functions
+- Manages BigQuery job lifecycle automatically
 
-### 2. Database Seeding Tool (`database-seeding-tool.ts`)
+**Input**: BigQuery Standard SQL query
+**Output**: Query results with full BigQuery metadata and type validation
 
-Seeds databases with sample data for testing:
+### Authentication & Configuration
 
-- Creates cities table with proper schema
-- Imports data from CSV or generates sample data
-- Handles batch insertions efficiently
-- Returns seeding statistics and metadata
+The BigQuery integration uses Google Cloud service account authentication with the following environment variables:
 
-**Input**: Database connection string
-**Output**: Seeding results with record counts and success status
+```env
+# Google Cloud Service Account
+GOOGLE_TYPE=service_account
+GOOGLE_PROJECT_ID=your-project-id
+GOOGLE_PRIVATE_KEY_ID=your-private-key-id
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+GOOGLE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
+GOOGLE_CLIENT_ID=your-client-id
+GOOGLE_AUTH_URI=https://accounts.google.com/o/oauth2/auth
+GOOGLE_TOKEN_URI=https://oauth2.googleapis.com/token
+GOOGLE_AUTH_PROVIDER_X509_CERT_URL=https://www.googleapis.com/oauth2/v1/certs
+GOOGLE_CLIENT_X509_CERT_URL=https://www.googleapis.com/robot/v1/metadata/x509/your-service-account%40your-project.iam.gserviceaccount.com
+GOOGLE_UNIVERSE_DOMAIN=googleapis.com
 
-### 3. SQL Generation Tool (`sql-generation-tool.ts`)
-
-Converts natural language queries to SQL using OpenAI's GPT-4:
-
-- Analyzes database schema context
-- Generates optimized SELECT queries
-- Provides confidence scores and explanations
-- Lists assumptions and tables used
-
-**Input**: Natural language query + database schema
-**Output**: SQL query with metadata and explanations
-
-### 4. SQL Execution Tool (`sql-execution-tool.ts`)
-
-Safely executes SQL queries:
-
-- Restricts to SELECT queries only
-- Manages connection pooling
-- Provides detailed error handling
-- Returns structured results
-
-**Input**: Connection string + SQL query
-**Output**: Query results or error information
-
-## Enhanced SQL Agent
-
-### Comprehensive Database Assistant
-
-The SQL Agent (`sqlAgent`) now has the same capabilities as the workflow, providing a conversational interface for database operations:
-
-#### **🔗 Database Connection & Analysis**
-
-```typescript
-const sqlAgent = mastra.getAgent('sqlAgent');
-
-const result = await sqlAgent.generate(
-  [
-    {
-      role: 'user',
-      content: 'Connect to postgresql://user:password@localhost:5432/database and analyze the schema',
-    },
-  ],
-  { maxSteps: 5 },
-);
+# BigQuery Configuration
+BIGQUERY_PROJECT_ID=your-bigquery-project-id
 ```
 
-#### **🌱 Database Seeding**
+## Enhanced BigQuery Agent
+
+### Comprehensive BigQuery Data Analytics Assistant
+
+The BigQuery Agent (`bigQuerySqlAgent`) provides a conversational interface for BigQuery data analytics:
+
+#### **🔍 Dataset Analysis & Queries**
 
 ```typescript
-const result = await sqlAgent.generate(
+const bigQueryAgent = mastra.getAgent('bigQuerySqlAgent');
+
+const result = await bigQueryAgent.generate(
   [
     {
       role: 'user',
-      content:
-        'Seed the database with comprehensive business data including companies, employees, projects, and skills',
+      content: 'Analyze the top 10 most visited pages from our web analytics dataset',
     },
   ],
   { maxSteps: 3 },
 );
 ```
 
-#### **🧠 Natural Language Queries**
+#### **📊 Complex Analytics Queries**
 
 ```typescript
-const result = await sqlAgent.generate(
+const result = await bigQueryAgent.generate(
   [
     {
       role: 'user',
-      content: 'Show me the top 10 most populous cities in Europe',
+      content: 'Show me monthly revenue trends with year-over-year comparison for the last 2 years',
     },
   ],
-  { maxSteps: 5 },
+  { maxSteps: 3 },
 );
 ```
 
-#### **Agent Capabilities**
-
-✅ **Multi-tool Orchestration** - Automatically uses the right tools for each task
-✅ **Schema-Aware Queries** - Understands database structure for accurate SQL generation
-✅ **Safe Execution** - Only allows SELECT queries with proper error handling
-✅ **Conversational Interface** - Natural language interaction with detailed explanations
-✅ **Complete Workflow** - Handles connection → seeding → introspection → querying → execution
-
-## Workflows
-
-### Database Query Workflow (Multi-Step with Suspend/Resume)
-
-The main workflow (`databaseQueryWorkflow`) is a multi-step interactive workflow that performs:
-
-#### Step 1: Database Connection
-
-- **Suspends** to collect database connection string from user
-- **Validates** connection to ensure database is accessible
-
-#### Step 2: Database Seeding (Optional)
-
-- **Suspends** to ask if user wants to seed database with sample data
-- **Creates** cities table with sample data if requested
-- **Provides** immediate data for testing and demonstration
-
-#### Step 3: Schema Introspection
-
-- **Automatically** introspects database schema (tables, columns, relationships, indexes)
-- **Generates** human-readable schema presentation
-- **Analyzes** database structure and relationships
-
-#### Step 4: Natural Language to SQL Generation
-
-- **Suspends** to collect natural language query from user
-- **Shows** database schema information to help user formulate queries
-- **Generates** SQL query using AI with confidence scores and explanations
-
-#### Step 5: SQL Review and Execution
-
-- **Suspends** to show generated SQL and get user approval
-- **Allows** user to modify the SQL query if needed
-- **Executes** the approved/modified query against the database
-- **Returns** query results with metadata
-
-**Usage**:
+#### **🔗 Multi-Dataset Analysis**
 
 ```typescript
-const workflow = mastra.getWorkflow('databaseQueryWorkflow');
-const run = await workflow.createRunAsync();
+const result = await bigQueryAgent.generate(
+  [
+    {
+      role: 'user',
+      content: 'Join our sales data with customer demographics to find our most valuable customer segments',
+    },
+  ],
+  { maxSteps: 3 },
+);
+```
 
-// Start workflow (will suspend for connection string)
-let result = await run.start({ inputData: {} });
+#### **BigQuery Agent Capabilities**
 
-// Step 1: Provide connection string
-result = await run.resume({
-  step: 'get-connection',
-  resumeData: { connectionString: 'postgresql://...' },
-});
+✅ **BigQuery Standard SQL** - Supports full BigQuery SQL syntax and functions
+✅ **Large-Scale Analytics** - Leverages BigQuery's massive parallel processing
+✅ **Multi-Dataset Queries** - Handles queries across multiple BigQuery datasets
+✅ **Real-time Analytics** - Executes queries on streaming data and real-time tables
+✅ **Safe Execution** - Uses BigQuery's built-in security and access controls
+✅ **Conversational Interface** - Natural language to BigQuery SQL translation
+✅ **Google Cloud Integration** - Seamless integration with Google Cloud ecosystem
 
-// Step 2: Choose whether to seed database
-result = await run.resume({
-  step: 'seed-database',
-  resumeData: { seedDatabase: true },
-});
+## BigQuery Analytics Workflow
 
-// Step 3: Database introspection happens automatically
+### Direct Query Execution
 
-// Step 4: Provide natural language query
-result = await run.resume({
-  step: 'generate-sql',
-  resumeData: { naturalLanguageQuery: 'Show me top 10 cities by population' },
-});
+The BigQuery integration uses a direct execution model optimized for analytics:
 
-// Step 5: Review and approve SQL
-result = await run.resume({
-  step: 'review-and-execute',
-  resumeData: {
-    approved: true,
-    modifiedSQL: 'optional modified query',
-  },
-});
+#### **Immediate Query Processing**
+
+Unlike traditional database connections, BigQuery uses Google Cloud authentication and project-based access:
+
+1. **Authentication** - Uses service account credentials for secure access
+2. **Query Submission** - Submits SQL queries as BigQuery jobs
+3. **Async Processing** - Leverages BigQuery's distributed processing
+4. **Results Retrieval** - Returns processed results with metadata
+
+#### **Example Usage Patterns**
+
+**Simple Analytics Query:**
+```typescript
+const result = await bigQueryAgent.generate([
+  {
+    role: 'user',
+    content: 'What are our top 5 products by revenue this quarter?'
+  }
+], { maxSteps: 2 });
+```
+
+**Complex Multi-Table Analysis:**
+```typescript
+const result = await bigQueryAgent.generate([
+  {
+    role: 'user', 
+    content: 'Analyze customer retention rates by cohort for users who signed up in 2023, including demographic breakdowns'
+  }
+], { maxSteps: 3 });
+```
+
+**Time-Series Analytics:**
+```typescript
+const result = await bigQueryAgent.generate([
+  {
+    role: 'user',
+    content: 'Show daily active users trend with 7-day moving average for the past 90 days'
+  }
+], { maxSteps: 2 });
 ```
 
 ## Setup and Installation
