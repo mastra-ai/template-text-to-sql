@@ -6,6 +6,7 @@ import { databaseIntrospectionTool } from "../tools/postgres/database-introspect
 import { databaseSeedingTool } from "../tools/postgres/database-seeding-tool";
 import { sqlExecutionTool } from "../tools/postgres/sql-execution-tool";
 import { sqlGenerationTool } from "../tools/postgres/sql-generation-tool";
+import { bigqueryIntrospectionTool } from "../tools/bigquery/bigquery-inspection-tool";
 
 // Initialize memory with LibSQLStore for persistence
 const memory = new Memory({
@@ -159,6 +160,7 @@ export const sqlAgent = new Agent({
     databaseSeedingTool,
     sqlGenerationTool,
     sqlExecutionTool,
+    bigqueryIntrospectionTool,
   },
   memory,
 });
