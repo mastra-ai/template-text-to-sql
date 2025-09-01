@@ -13,20 +13,23 @@ A comprehensive Mastra workflow system for BigQuery data analytics and natural l
 ### Clone and Setup
 
 1. **Clone the repository:**
+
 ```bash
 git clone https://github.com/The-Caesar/bigquery-postgres-text-to-sql.git
 cd bigquery-postgres-text-to-sql
 ```
 
 2. **Install dependencies:**
+
 ```bash
-npm install
+npm install --legacy-peer-deps
 # or
-pnpm install
+pnpm install --legacy-peer-deps
 ```
 
 3. **Environment Configuration:**
-Copy the example environment file and configure your credentials:
+   Copy the example environment file and configure your credentials:
+
 ```bash
 cp .env.example .env
 ```
@@ -34,6 +37,7 @@ cp .env.example .env
 4. **Configure your `.env` file** (see [Environment Setup](#environment-setup) section below)
 
 5. **Run the development server:**
+
 ```bash
 npm run dev
 # or
@@ -77,16 +81,19 @@ POSTHOG_DISABLED=true
 ### 🔑 Google Cloud Service Account Setup
 
 #### Step 1: Create a Google Cloud Project
+
 1. Go to the [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select an existing one
 3. Note your Project ID (you'll need this for `GOOGLE_PROJECT_ID` and `BIGQUERY_PROJECT_ID`)
 
 #### Step 2: Enable BigQuery API
+
 1. In the Google Cloud Console, go to **APIs & Services > Library**
 2. Search for "BigQuery API"
 3. Click on it and press **Enable**
 
 #### Step 3: Create a Service Account
+
 1. Go to **IAM & Admin > Service Accounts**
 2. Click **Create Service Account**
 3. Enter a name (e.g., "bigquery-text-to-sql")
@@ -94,12 +101,15 @@ POSTHOG_DISABLED=true
 5. Click **Create and Continue**
 
 #### Step 4: Assign Permissions
+
 Assign the following roles to your service account:
+
 - **BigQuery Data Viewer** - To read data from BigQuery datasets
 - **BigQuery Job User** - To run BigQuery jobs/queries
 - **BigQuery Metadata Viewer** - To access dataset and table metadata
 
 #### Step 5: Generate Service Account Key
+
 1. Click on your newly created service account
 2. Go to the **Keys** tab
 3. Click **Add Key > Create New Key**
@@ -107,21 +117,22 @@ Assign the following roles to your service account:
 5. Download the JSON file and save it as `service-account.json` in your project root
 
 #### Step 6: Extract Credentials for Environment Variables
+
 Open the downloaded `service-account.json` file and extract the following values for your `.env` file:
 
 ```json
 {
-  "type": "service_account",                    // → GOOGLE_TYPE
-  "project_id": "your-project-id",              // → GOOGLE_PROJECT_ID & BIGQUERY_PROJECT_ID
-  "private_key_id": "key-id",                   // → GOOGLE_PRIVATE_KEY_ID
+  "type": "service_account", // → GOOGLE_TYPE
+  "project_id": "your-project-id", // → GOOGLE_PROJECT_ID & BIGQUERY_PROJECT_ID
+  "private_key_id": "key-id", // → GOOGLE_PRIVATE_KEY_ID
   "private_key": "-----BEGIN PRIVATE KEY-----...", // → GOOGLE_PRIVATE_KEY
   "client_email": "service-account@project.iam.gserviceaccount.com", // → GOOGLE_CLIENT_EMAIL
-  "client_id": "client-id",                     // → GOOGLE_CLIENT_ID
+  "client_id": "client-id", // → GOOGLE_CLIENT_ID
   "auth_uri": "https://accounts.google.com/o/oauth2/auth", // → GOOGLE_AUTH_URI
   "token_uri": "https://oauth2.googleapis.com/token", // → GOOGLE_TOKEN_URI
   "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs", // → GOOGLE_AUTH_PROVIDER_X509_CERT_URL
   "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/...", // → GOOGLE_CLIENT_X509_CERT_URL
-  "universe_domain": "googleapis.com"           // → GOOGLE_UNIVERSE_DOMAIN
+  "universe_domain": "googleapis.com" // → GOOGLE_UNIVERSE_DOMAIN
 }
 ```
 
@@ -136,11 +147,13 @@ This project implements a sophisticated two-part workflow system for BigQuery sc
 **Purpose:** Analyzes your BigQuery datasets and generates a comprehensive system prompt with complete schema information.
 
 #### Workflow Steps:
+
 1. **Dataset Information Collection** - Prompts user for BigQuery dataset details
 2. **Schema Introspection** - Analyzes tables, columns, relationships, and row counts
 3. **System Prompt Generation** - Creates a detailed system prompt with schema information
 
 #### How to Use:
+
 ```typescript
 import { bigquerysystemPrompQueryWorkflow } from './src/mastra/workflows/bigquery/bigquery-generate-systemPrompt-part1.ts';
 
@@ -160,6 +173,7 @@ const result = await bigquerysystemPrompQueryWorkflow.execute({});
 ```
 
 #### Output:
+
 - Generates a comprehensive system prompt with complete schema information
 - Updates `src/mastra/systemPrompt/bigqueyAgentgeneratesqlSystemprompt.ts` with your dataset schema
 - Provides detailed table structures, column types, and relationships
@@ -171,20 +185,24 @@ const result = await bigquerysystemPrompQueryWorkflow.execute({});
 **Purpose:** Uses the generated system prompt to convert natural language queries into BigQuery SQL and execute them.
 
 #### Workflow Steps:
+
 1. **SQL Generation** - Converts natural language to BigQuery SQL using the schema-aware system prompt
 2. **Query Execution** - Safely executes the generated SQL query on BigQuery
 
 #### How to Use:
+
 ```typescript
-import { bigqueryQueryWorkflowPart2 } from './src/mastra/workflows/bigquery/bigquery-query-workflow-part2.ts';
+import { bigqueryQueryWorkflowPart2 } from "./src/mastra/workflows/bigquery/bigquery-query-workflow-part2.ts";
 
 // Run the workflow with a natural language query
 const result = await bigqueryQueryWorkflowPart2.execute({
-  naturalLanguageQuery: "Show me the top 10 most popular programming languages based on Stack Overflow questions"
+  naturalLanguageQuery:
+    "Show me the top 10 most popular programming languages based on Stack Overflow questions",
 });
 ```
 
 #### Output:
+
 - Generated BigQuery SQL query
 - Query explanation and confidence score
 - Execution results with row count
@@ -193,6 +211,7 @@ const result = await bigqueryQueryWorkflowPart2.execute({
 ### 🔄 Complete Workflow Process
 
 1. **First, run Part 1** to analyze your datasets and generate the system prompt:
+
    ```bash
    # This will introspect your BigQuery datasets and update the system prompt
    npm run dev
@@ -200,11 +219,14 @@ const result = await bigqueryQueryWorkflowPart2.execute({
    ```
 
 2. **Then, run Part 2** to generate and execute queries:
-   ```bash
+
+   ````bash
    # This will use the generated system prompt to answer natural language queries
-   npm run dev
+     - mac: ```NODE_TLS_REJECT_UNAUTHORIZED=0 npm start```
+     - windows: ```npm start```
+
    # Execute: bigqueryQueryWorkflowPart2
-   ```
+   ````
 
 ## 🏗️ Project Structure
 
@@ -254,6 +276,7 @@ npm test           # Run tests (currently not configured)
 ## 🔧 Tools Overview
 
 ### BigQuery Inspection Tool
+
 **File:** `src/mastra/tools/bigquery/bigquery-inspection-tool.ts`
 
 - **Schema Analysis** - Analyzes tables, columns, data types, and relationships
@@ -262,6 +285,7 @@ npm test           # Run tests (currently not configured)
 - **Metadata Extraction** - Extracts creation dates, table types, and more
 
 ### Query Generation Tool
+
 **File:** `src/mastra/tools/bigquery/query-generation-tool.ts`
 
 - **Natural Language Processing** - Converts English to BigQuery SQL
@@ -270,6 +294,7 @@ npm test           # Run tests (currently not configured)
 - **Confidence Scoring** - Provides confidence levels for generated queries
 
 ### Query Execution Tool
+
 **File:** `src/mastra/tools/bigquery/bigquery-query-excution.ts`
 
 - **Safe Execution** - Only allows SELECT queries for security
@@ -282,20 +307,25 @@ npm test           # Run tests (currently not configured)
 The BigQuery Agent provides a conversational interface for data analytics:
 
 ```typescript
-import { mastra } from './src/mastra/index.ts';
+import { mastra } from "./src/mastra/index.ts";
 
-const bigQueryAgent = mastra.getAgent('bigQuerySqlAgent');
+const bigQueryAgent = mastra.getAgent("bigQuerySqlAgent");
 
 // Example usage
-const result = await bigQueryAgent.generate([
-  {
-    role: 'user',
-    content: 'Show me the top 10 users with the most reputation on Stack Overflow'
-  }
-], { maxSteps: 3 });
+const result = await bigQueryAgent.generate(
+  [
+    {
+      role: "user",
+      content:
+        "Show me the top 10 users with the most reputation on Stack Overflow",
+    },
+  ],
+  { maxSteps: 3 }
+);
 ```
 
 ### Agent Capabilities
+
 - ✅ **Natural Language to SQL** - Converts questions to BigQuery queries
 - ✅ **Schema-Aware** - Uses complete dataset schema for context
 - ✅ **Multi-Step Reasoning** - Can break down complex queries
@@ -324,17 +354,20 @@ const result = await bigQueryAgent.generate([
 ## 🚀 Example Workflows
 
 ### Analyzing Stack Overflow Data
+
 ```typescript
 // Part 1: Generate system prompt with Stack Overflow schema
 const schemaResult = await bigquerysystemPrompQueryWorkflow.execute({});
 
 // Part 2: Query the data
 const queryResult = await bigqueryQueryWorkflowPart2.execute({
-  naturalLanguageQuery: "What are the most popular programming languages based on question tags?"
+  naturalLanguageQuery:
+    "What are the most popular programming languages based on question tags?",
 });
 ```
 
 ### Custom Dataset Analysis
+
 ```typescript
 // Part 1: Analyze your custom datasets
 const schemaResult = await bigquerysystemPrompQueryWorkflow.execute({});
@@ -342,7 +375,7 @@ const schemaResult = await bigquerysystemPrompQueryWorkflow.execute({});
 
 // Part 2: Query your data
 const queryResult = await bigqueryQueryWorkflowPart2.execute({
-  naturalLanguageQuery: "Show me monthly revenue trends for the last year"
+  naturalLanguageQuery: "Show me monthly revenue trends for the last year",
 });
 ```
 
@@ -366,7 +399,9 @@ const queryResult = await bigqueryQueryWorkflowPart2.execute({
    - Ensure no extra spaces or quotes in environment values
 
 ### Debug Mode
+
 Enable debug logging by setting:
+
 ```env
 DEBUG=true
 ```
@@ -374,6 +409,7 @@ DEBUG=true
 ## 📝 Dependencies
 
 ### Core Dependencies
+
 - `@mastra/core` - Workflow orchestration framework
 - `@google-cloud/bigquery` - Google Cloud BigQuery client
 - `@ai-sdk/openai` - OpenAI integration for AI-powered features
@@ -381,10 +417,12 @@ DEBUG=true
 - `zod` - Schema validation and type safety
 
 ### AI Providers
+
 - `@ai-sdk/google` - Google AI integration
 - `@openrouter/ai-sdk-provider` - OpenRouter AI provider
 
 ### Utilities
+
 - `dotenv` - Environment variable management
 - `csv-parse` - CSV parsing utilities
 - `typescript` - TypeScript support
