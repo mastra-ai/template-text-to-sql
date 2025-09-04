@@ -76,29 +76,39 @@ export const sqlExecutionTool = createTool({
     const client = createDatabaseConnection(connectionString);
 
     try {
-        console.log('🔌 Connecting to PostgreSQL for query execution...');
-        await client.connect();
-        console.log('✅ Connected to PostgreSQL for query execution');
+      await client.connect();
 
-        // Enhanced validation
-        validateQuery(query);
+      // Layer 1: Input validation
+      validateQuery(query); // Your function whitelist approach
 
-        const result = await executeQuery(client, query);
+      // Layer 2: Read-only transaction
+      await client.query('BEGIN TRANSACTION READ ONLY');
 
-        return {
-            success: true,
-            data: result,
-            rowCount: result.length,
-            executedQuery: query,
-        };
+      // Layer 3: Query timeout (prevent resource exhaustion)
+      await client.query('SET statement_timeout = 30000'); // 30 seconds
+
+      const result = await client.query(query);
+      await client.query('COMMIT');
+
+      return {
+        success: true,
+        data: result.rows,
+        rowCount: result.rows.length,
+        executedQuery: query,
+      };
     } catch (error) {
-        return {
-            success: false,
-            error: error instanceof Error ? error.message : String(error),
-            executedQuery: query,
-        };
+      // Always rollback
+      try {
+        await client.query('ROLLBACK');
+      } catch {}
+
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        executedQuery: query,
+      };
     } finally {
-        await client.end();
+      await client.end();
     }
   },
 });
