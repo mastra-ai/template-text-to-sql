@@ -44,6 +44,7 @@ const validateQuery = (query: string) => {
     /\bload_file\b/i,      // File loading
     /\beval\b/i,           // Code evaluation
     /\bexecute\b/i,        // Dynamic execution
+    /\bsleep\b/i,          // Sleep execution
   ];
 
   for (const pattern of dangerousPatterns) {
@@ -52,7 +53,7 @@ const validateQuery = (query: string) => {
     }
   }
 
-  // Check function calls against whitelist
+  // Check function calls against allow list
   const functionMatches = trimmedQuery.match(/\b(\w+)\s*\(/g);
   if (functionMatches) {
     for (const match of functionMatches) {
