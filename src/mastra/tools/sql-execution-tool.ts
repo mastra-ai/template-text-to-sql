@@ -22,6 +22,49 @@ const executeQuery = async (client: Client, query: string) => {
   }
 };
 
+const ALLOWED_FUNCTIONS = new Set([
+  'count', 'sum', 'avg', 'min', 'max',
+  'upper', 'lower', 'length', 'substring',
+  'date_part', 'now', 'current_timestamp', 'current_date',
+  'coalesce', 'greatest', 'least'
+]);
+
+const validateQuery = (query: string) => {
+  const trimmedQuery = query.trim().toLowerCase();
+
+  if (!trimmedQuery.startsWith('select')) {
+    throw new Error('Only SELECT queries are allowed for security reasons');
+  }
+
+  // Block common dangerous patterns
+  const dangerousPatterns = [
+    /pg_\w+\(/i,           // PostgreSQL system functions
+    /\bcopy\b/i,           // COPY command
+    /\binto\s+outfile/i,   // File operations
+    /\bload_file\b/i,      // File loading
+    /\beval\b/i,           // Code evaluation
+    /\bexecute\b/i,        // Dynamic execution
+    /\bsleep\b/i,          // Sleep execution
+  ];
+
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(trimmedQuery)) {
+      throw new Error('Query contains potentially dangerous operations');
+    }
+  }
+
+  // Check function calls against allow list
+  const functionMatches = trimmedQuery.match(/\b(\w+)\s*\(/g);
+  if (functionMatches) {
+    for (const match of functionMatches) {
+      const functionName = match.replace(/\s*\(/, '').toLowerCase();
+      if (!ALLOWED_FUNCTIONS.has(functionName)) {
+        throw new Error(`Function '${functionName}' is not allowed for security reasons`);
+      }
+    }
+  }
+};
+
 export const sqlExecutionTool = createTool({
   id: 'sql-execution',
   inputSchema: z.object({
@@ -33,31 +76,29 @@ export const sqlExecutionTool = createTool({
     const client = createDatabaseConnection(connectionString);
 
     try {
-      console.log('🔌 Connecting to PostgreSQL for query execution...');
-      await client.connect();
-      console.log('✅ Connected to PostgreSQL for query execution');
+        console.log('🔌 Connecting to PostgreSQL for query execution...');
+        await client.connect();
+        console.log('✅ Connected to PostgreSQL for query execution');
 
-      const trimmedQuery = query.trim().toLowerCase();
-      if (!trimmedQuery.startsWith('select')) {
-        throw new Error('Only SELECT queries are allowed for security reasons');
-      }
+        // Enhanced validation
+        validateQuery(query);
 
-      const result = await executeQuery(client, query);
+        const result = await executeQuery(client, query);
 
-      return {
-        success: true,
-        data: result,
-        rowCount: result.length,
-        executedQuery: query,
-      };
+        return {
+            success: true,
+            data: result,
+            rowCount: result.length,
+            executedQuery: query,
+        };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : String(error),
-        executedQuery: query,
-      };
+        return {
+            success: false,
+            error: error instanceof Error ? error.message : String(error),
+            executedQuery: query,
+        };
     } finally {
-      await client.end();
+        await client.end();
     }
   },
 });
