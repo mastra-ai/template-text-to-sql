@@ -124,10 +124,8 @@ Please provide:
 4. Any assumptions you made
 5. List of tables used (in project.dataset.table format)`;
 
-      console.log("systemPrompt=====>", systemPrompt);
-      console.log("userPrompt=====>", userPrompt);
       const result = await generateObject({
-        model: openrouter("gpt-4o"),
+        model: openrouter("gpt-4.1"),
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
