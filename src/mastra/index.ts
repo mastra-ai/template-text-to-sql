@@ -17,9 +17,12 @@ export const mastra = new Mastra({
     name: 'Mastra',
     level: 'info',
   }),
+  telemetry: {
+    // Telemetry is deprecated and will be removed in the Nov 4th release
+    enabled: false, 
+  },
   observability: {
-    default: {
-      enabled: true,
-    },
+    // Enables DefaultExporter and CloudExporter for AI tracing
+    default: { enabled: true }, 
   },
 });
