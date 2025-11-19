@@ -4,7 +4,7 @@ import { databaseIntrospectionTool } from '../tools/database-introspection-tool'
 import { sqlGenerationTool } from '../tools/sql-generation-tool';
 import { sqlExecutionTool } from '../tools/sql-execution-tool';
 import { databaseSeedingTool } from '../tools/database-seeding-tool';
-import { RequestContext } from '@mastra/core/di';
+import { RuntimeContext } from '@mastra/core/di';
 
 // Step 1: Get connection string
 const getConnectionStep = createStep({
@@ -92,7 +92,7 @@ const seedDatabaseStep = createStep({
 
       const seedResult = await databaseSeedingTool.execute({
         context: { connectionString },
-        requestContext: requestContext || new RequestContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard to ensure we have seed result
@@ -151,7 +151,7 @@ const introspectDatabaseStep = createStep({
 
       const schemaData = await databaseIntrospectionTool.execute({
         context: { connectionString },
-        requestContext: requestContext || new RequestContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard to ensure we have schema data
@@ -260,7 +260,7 @@ const generateSQLStep = createStep({
           naturalLanguageQuery,
           databaseSchema: schema,
         },
-        requestContext: requestContext || new RequestContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard for generated SQL
@@ -359,7 +359,7 @@ const reviewAndExecuteStep = createStep({
           connectionString,
           query: finalSQL,
         },
-        requestContext: requestContext || new RequestContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard for execution result
