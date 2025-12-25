@@ -60,7 +60,7 @@ const seedDatabaseStep = createStep({
   suspendSchema: z.object({
     message: z.string(),
   }),
-  execute: async ({ inputData, resumeData, suspend, requestContext }) => {
+  execute: async ({ inputData, resumeData, suspend, runtimeContext }) => {
     const { connectionString } = inputData;
 
     if (resumeData === undefined) {
@@ -140,7 +140,7 @@ const introspectDatabaseStep = createStep({
       })
       .optional(),
   }),
-  execute: async ({ inputData, requestContext }) => {
+  execute: async ({ inputData, runtimeContext }) => {
     const { connectionString, seeded, seedResult } = inputData;
 
     try {
@@ -221,7 +221,7 @@ const generateSQLStep = createStep({
       })
       .optional(),
   }),
-  execute: async ({ inputData, resumeData, suspend, requestContext }) => {
+  execute: async ({ inputData, resumeData, suspend, runtimeContext }) => {
     const { connectionString, schema, schemaPresentation, seeded, seedResult } = inputData;
 
     if (!resumeData?.naturalLanguageQuery) {
@@ -319,7 +319,7 @@ const reviewAndExecuteStep = createStep({
     }),
     message: z.string(),
   }),
-  execute: async ({ inputData, resumeData, suspend, requestContext }) => {
+  execute: async ({ inputData, resumeData, suspend, runtimeContext }) => {
     const { connectionString, naturalLanguageQuery, generatedSQL } = inputData;
 
     if (!resumeData) {
