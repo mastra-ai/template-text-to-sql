@@ -92,7 +92,7 @@ const seedDatabaseStep = createStep({
 
       const seedResult = await databaseSeedingTool.execute({
         context: { connectionString },
-        runtimeContext: runtimeContext || new RuntimeContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard to ensure we have seed result
@@ -151,7 +151,7 @@ const introspectDatabaseStep = createStep({
 
       const schemaData = await databaseIntrospectionTool.execute({
         context: { connectionString },
-        runtimeContext: runtimeContext || new RuntimeContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard to ensure we have schema data
@@ -260,7 +260,7 @@ const generateSQLStep = createStep({
           naturalLanguageQuery,
           databaseSchema: schema,
         },
-        runtimeContext: runtimeContext || new RuntimeContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard for generated SQL
@@ -359,7 +359,7 @@ const reviewAndExecuteStep = createStep({
           connectionString,
           query: finalSQL,
         },
-        runtimeContext: runtimeContext || new RuntimeContext(),
+        requestContext: requestContext || new RuntimeContext(),
       });
 
       // Type guard for execution result
